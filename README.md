@@ -8,4 +8,6 @@
 
 ```sh
 $ stack repl
+ghci> eval addExample
+1337
 ```
