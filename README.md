@@ -6,8 +6,14 @@
 
 - お試し
 
-```sh
-$ stack repl
-ghci> eval addExample
-1337
-```
+    ```sh
+    $ stack repl
+    ghci> eval addExample -- ex: addition (Ch 3)
+    1337
+    ghci> eval ex41 -- ex: addition (Ch 4)
+    31337
+    ghci> eval ex51 -- ex: addition and multiplication (Ch 5)
+    404
+    ghci> eval ex52 -- ex: multiplication (Ch 5)
+    42
+    ```

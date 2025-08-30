@@ -112,11 +112,10 @@ val x = inject (Val x)
 (|+|) :: (Add :<: f) => Expr f -> Expr f -> Expr f
 x |+| y = inject (Add x y)
 
-ex41 :: Expr (Add :+: Val)
-ex41 = val 30000 |+| val 1330 |+| val 7
-
 -- >>> eval ex41
 -- 31337
+ex41 :: Expr (Add :+: Val)
+ex41 = val 30000 |+| val 1330 |+| val 7
 
 inVal :: Int -> Expr (Val :+: Val)
 inVal i = inject (Val i)
