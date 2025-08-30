@@ -80,7 +80,7 @@ eval expr = foldExpr evalAlgebra expr
 -- val :: Int -> Expr Val
 -- val x = In (Val x)
 
--- Original ⊕
+-- | Original ⊕ (\oplus)
 infixl 6 |+|
 
 -- (|+|) :: Expr Add -> Expr Add -> Expr Add
@@ -138,7 +138,7 @@ instance Eval Mul where
   evalAlgebra :: Mul Int -> Int
   evalAlgebra (Mul x y) = x * y
 
--- | original ⊗
+-- | Original ⊗ (\otimes)
 infixl 7 |*|
 
 (|*|) :: (Mul :<: f) => Expr f -> Expr f -> Expr f
