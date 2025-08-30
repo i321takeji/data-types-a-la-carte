@@ -8,4 +8,6 @@ and this project adheres to the
 
 ## Unreleased
 
+- Add up to the multiplication examples in Chapter 5
+
 ## 0.1.0.0 - YYYY-MM-DD
