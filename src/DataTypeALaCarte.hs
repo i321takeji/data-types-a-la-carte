@@ -80,6 +80,7 @@ eval expr = foldExpr evalAlgebra expr
 -- val :: Int -> Expr Val
 -- val x = In (Val x)
 
+-- Original ⊕
 infixl 6 |+|
 
 -- (|+|) :: Expr Add -> Expr Add -> Expr Add
@@ -111,23 +112,20 @@ val x = inject (Val x)
 (|+|) :: (Add :<: f) => Expr f -> Expr f -> Expr f
 x |+| y = inject (Add x y)
 
-ex1 :: Expr (Add :+: Val)
-ex1 = val 30000 |+| val 1330 |+| val 7
+ex41 :: Expr (Add :+: Val)
+ex41 = val 30000 |+| val 1330 |+| val 7
 
--- >>> eval ex1
+-- >>> eval ex41
 -- 31337
 
--- inVal :: Int -> Expr (Val :+: Val)
--- inVal i = inject (Val i)
+inVal :: Int -> Expr (Val :+: Val)
+inVal i = inject (Val i)
 
 -- ex0 :: Expr (Add :+: Val)
 -- ex0 = val 10 |+| val 20
 
 ex0' :: Expr (Add :+: Val)
 ex0' = In (Inl (Add (In (Inr (Val 10))) (In (Inr (Val 20)))))
-
--- ex0comm :: Expr (Val :+: Add)
--- ex0comm = permute commSum ex0
 
 -- * 5 Example
 
@@ -141,24 +139,28 @@ instance Eval Mul where
   evalAlgebra :: Mul Int -> Int
   evalAlgebra (Mul x y) = x * y
 
+-- | original ⊗
 infixl 7 |*|
 
 (|*|) :: (Mul :<: f) => Expr f -> Expr f -> Expr f
 x |*| y = inject (Mul x y)
 
--- >>> eval ex2
--- 404
--- ex2 :: Expr (Val :+: Add :+: Mul)
--- ex2 = val 80 |*| val 5 |+| val 4
-
 infixr 6 :+:
 
--- >>> eval ex3
--- 42
--- ex3 :: Expr (Val :+: Mul)
--- ex3 = val 6 |*| val 7
+-- >>> eval ex51
+-- 404
+ex51 :: Expr (Val :+: Add :+: Mul)
+ex51 = val 80 |*| val 5 |+| val 4
 
--- ex00 :: (Val :<: (Val :+: Add)) => Expr (Val :+: Add)
--- ex00 :: (Val :<: (Add :+: Val)) => (Add :+: Val) f
-ex00 :: (Val :<: (g :+: Val)) => (g :+: Val) a
-ex00 = inj (Val 10)
+-- |
+-- >>> eval ex51'
+-- 404
+--
+-- If "infixr 6 :+:" is not specified, parentheses are required for the expression type.
+ex51' :: Expr (Val :+: (Add :+: Mul))
+ex51' = val 80 |*| val 5 |+| val 4
+
+-- >>> eval ex52
+-- 42
+ex52 :: Expr (Val :+: Mul)
+ex52 = val 6 |*| val 7
