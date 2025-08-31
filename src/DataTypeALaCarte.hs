@@ -120,6 +120,17 @@ ex41 = val 30000 |+| val 1330 |+| val 7
 inVal :: Int -> Expr (Val :+: Val)
 inVal i = inject (Val i)
 
+-- >>> check4
+-- True
+check4 :: Bool
+check4 = eval exA == eval exB
+  where
+    exA :: Expr (Val :+: Val)
+    exA = In (Inl (Val 1))
+
+    exB :: Expr (Val :+: Val)
+    exB = In (Inr (Val 1))
+
 -- ex0 :: Expr (Add :+: Val)
 -- ex0 = val 10 |+| val 20
 
