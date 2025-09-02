@@ -6,6 +6,8 @@
 
 module DataTypeALaCarte where
 
+import Control.Applicative (Alternative ((<|>)))
+
 -- * 1 Introduction
 
 -- data Expr = Val Int | Add Expr Expr
@@ -91,17 +93,34 @@ infixl 6 |+|
 class (Functor sub, Functor sup) => sub :<: sup where
   inj :: sub a -> sup a
 
+  -- | ch 5
+  prj :: sup a -> Maybe (sub a)
+
 instance (Functor f) => f :<: f where
   inj :: f a -> f a
   inj = id
+
+  -- \| ch 5
+  prj :: f a -> Maybe (f a)
+  prj = Just . id
 
 instance {-# OVERLAPPING #-} (Functor f, Functor g) => f :<: (f :+: g) where
   inj :: f a -> (f :+: g) a
   inj = Inl
 
+  -- \| ch 5
+  prj :: (f :+: g) a -> Maybe (f a)
+  prj (Inl fx) = Just $ fx
+  prj (Inr gx) = Nothing
+
 instance {-# OVERLAPPABLE #-} (Functor f, Functor g, Functor h, f :<: g) => f :<: (h :+: g) where
   inj :: f a -> (h :+: g) a
   inj = Inr . inj
+
+  -- \| ch 5
+  prj :: (h :+: g) a -> Maybe (f a)
+  prj (Inl fx) = Nothing
+  prj (Inr gx) = prj gx
 
 inject :: (g :<: f) => g (Expr f) -> Expr f
 inject = In . inj
@@ -174,3 +193,76 @@ ex51' = val 80 |*| val 5 |+| val 4
 -- 42
 ex52 :: Expr (Val :+: Mul)
 ex52 = val 6 |*| val 7
+
+-- class Render f where
+--   render :: f (Expr f) -> String
+class Render f where
+  render :: (Render g) => f (Expr g) -> String
+
+pretty :: (Render f) => Expr f -> String
+pretty (In t) = render t
+
+instance Render Val where
+  render :: (Render g) => Val (Expr g) -> String
+  render (Val i) = show i
+
+instance Render Add where
+  render :: (Render g) => Add (Expr g) -> String
+  render (Add x y) = "(" ++ pretty x ++ " + " ++ pretty y ++ ")"
+
+instance Render Mul where
+  render :: (Render g) => Mul (Expr g) -> String
+  render (Mul x y) = "(" ++ pretty x ++ " * " ++ pretty y ++ ")"
+
+instance (Render f, Render g) => Render (f :+: g) where
+  render :: (Render h) => (f :+: g) (Expr h) -> String
+  render (Inl x) = render x
+  render (Inr y) = render y
+
+-- >>> pretty ex53
+-- "((80 * 5) + 4)"
+ex53 :: Expr (Val :+: Add :+: Mul)
+ex53 = val 80 |*| val 5 |+| val 4
+
+-- class (Functor sub, Functor sup) => sub :<: sup where
+--   inj :: sub a -> sup a
+--   prj :: sup a -> Maybe (sub a)
+
+match :: (g :<: f) => Expr f -> Maybe (g (Expr f))
+match (In t) = prj t
+
+-- | Origina name `distr`
+distrR :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
+distrR t = do
+  Mul a b <- match t
+  Add c d <- match b
+  return (a |*| c |+| a |*| d)
+
+distrL :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
+distrL t = do
+  Mul a b <- match t
+  Add c d <- match a
+  return (c |*| b |+| d |*| b)
+
+distr :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
+distr t = distrR t <|> distrL t
+
+prettyDistr :: (Add :<: f, Mul :<: f, Render f) => Expr f -> String
+prettyDistr expr = maybe "error" pretty $ distr expr
+
+-- >>> pretty ex54
+-- "(10 * (20 + 30))"
+-- >>> prettyDistr ex54
+-- "((10 * 20) + (10 * 30))"
+ex54 :: Expr (Val :+: Mul :+: Add)
+ex54 = val 10 |*| (val 20 |+| val 30)
+
+-- >>> pretty ex55
+-- "((20 + 30) * 10)"
+-- >>> prettyDistr ex55
+-- "((20 * 10) + (30 * 10))"
+ex55 :: Expr (Val :+: Mul :+: Add)
+ex55 = (val 20 |+| val 30) |*| val 10
+
+ex56 :: Expr (Val :+: Mul :+: Add)
+ex56 = (val 10 |+| val 20) |*| (val 30 |+| val 40)
