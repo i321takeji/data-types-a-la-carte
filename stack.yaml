@@ -3,3 +3,10 @@ snapshot:
 
 packages:
   - .
+
+build:
+  haddock: true
+  haddock-deps: false
+  haddock-arguments:
+    haddock-args:
+      - "--odir=haddock"

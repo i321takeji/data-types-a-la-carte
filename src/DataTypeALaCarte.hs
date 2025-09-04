@@ -2,23 +2,32 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
+-- |
+-- - Original
+--
+--     - Swierstra W, "Data types à la carte", Journal of Functional Programming, Vol 18, No 4, pp423--436 (2008)
+--     - URL: <https://www.cambridge.org/core/journals/journal-of-functional-programming/article/data-types-a-la-carte/14416CB20C4637164EA9F77097909409>
 module DataTypeALaCarte where
 
 import Control.Applicative (Alternative ((<|>)))
 
 -- * 1 Introduction
 
+-- $intro_code
+-- @
 -- data Expr = Val Int | Add Expr Expr
-
+--
 -- eval :: Expr -> Int
 -- eval (Val x) = x
 -- eval (Add x y) = eval x + eval y
-
+--
 -- render :: Expr -> String
 -- render (Val x) = show x
 -- render (Add x y) = "(" ++ render x ++ " + " ++ render y ++ ")"
+-- @
 
 -- * 2 Fixing the expression problem
 
@@ -33,6 +42,12 @@ data Add e = Add e e
 type AddExpr = Expr Add
 
 data (f :+: g) e = Inl (f e) | Inr (g e)
+
+exVal :: IntExpr -- Expr Val
+exVal = In (Val 10)
+
+exAdd :: AddExpr -- Expr Add
+exAdd = In (Add undefined undefined)
 
 addExample :: Expr (Val :+: Add)
 addExample = In (Inr (Add (In (Inl (Val 118))) (In (Inl (Val 1219)))))
@@ -54,6 +69,27 @@ instance (Functor f, Functor g) => Functor (f :+: g) where
 
 foldExpr :: (Functor f) => (f a -> a) -> Expr f -> a
 foldExpr f (In t) = f (fmap (foldExpr f) t)
+
+-- $foldExpr_expand
+-- @
+--  foldExpr f (In (Inr (Add (In (Inl (Val 118))) (In (Inl (Val 1219))))))
+-- => f (fmap (foldExpr f) (Inr (Add (In (Inl (Val 118))) (In (Inl (Val 1219))))))
+-- => f (Inr (fmap (foldExpr f) (Add (In (Inl (Val 118))) (In (Inl (Val 1219))))))
+-- => f (Inr (Add (foldExpr f (In (Inl (Val 118))))
+--                (foldExpr f (In (Inl (Val 1219))))))
+-- => f (Inr (Add (f (fmap (foldExpr f) (Inl (Val 118))))
+--                (foldExpr f (In (Inl (Val 1219))))))
+-- => f (Inr (Add (f (Inl (fmap (foldExpr f) (Val 118))))
+--                (foldExpr f (In (Inl (Val 1219))))))
+-- => f (Inr (Add (f (Inl (Val 118)))
+--                (foldExpr f (In (Inl (Val 1219))))))
+-- => f (Inr (Add (f (Inl (Val 118)))
+--                (f (fmap (foldExpr f) (Inl (Val 1219))))))
+-- => f (Inr (Add (f (Inl (Val 118)))
+--                (f (Inl (fmap (foldExpr f) (Val 1219))))))
+-- => f (Inr (Add (f (Inl (Val 118)))
+--                (f (Inl (Val 1219)))))
+-- @
 
 class (Functor f) => Eval f where
   evalAlgebra :: f Int -> Int
@@ -82,7 +118,6 @@ eval expr = foldExpr evalAlgebra expr
 -- val :: Int -> Expr Val
 -- val x = In (Val x)
 
--- | Original ⊕ (\oplus)
 infixl 6 |+|
 
 -- (|+|) :: Expr Add -> Expr Add -> Expr Add
@@ -102,7 +137,7 @@ instance (Functor f) => f :<: f where
 
   -- \| ch 5
   prj :: f a -> Maybe (f a)
-  prj = Just . id
+  prj = Just
 
 instance {-# OVERLAPPING #-} (Functor f, Functor g) => f :<: (f :+: g) where
   inj :: f a -> (f :+: g) a
@@ -110,7 +145,7 @@ instance {-# OVERLAPPING #-} (Functor f, Functor g) => f :<: (f :+: g) where
 
   -- \| ch 5
   prj :: (f :+: g) a -> Maybe (f a)
-  prj (Inl fx) = Just $ fx
+  prj (Inl fx) = Just fx
   prj (Inr gx) = Nothing
 
 instance {-# OVERLAPPABLE #-} (Functor f, Functor g, Functor h, f :<: g) => f :<: (h :+: g) where
@@ -128,6 +163,7 @@ inject = In . inj
 val :: (Val :<: f) => Int -> Expr f
 val x = inject (Val x)
 
+-- | Original \(\oplus\)
 (|+|) :: (Add :<: f) => Expr f -> Expr f -> Expr f
 x |+| y = inject (Add x y)
 
@@ -139,6 +175,8 @@ ex41 = val 30000 |+| val 1330 |+| val 7
 inVal :: Int -> Expr (Val :+: Val)
 inVal i = inject (Val i)
 
+-- | @eval (In (Inl (Val 1))) == eval (In (Inr (Val 1)))@
+--
 -- >>> check4
 -- True
 check4 :: Bool
@@ -168,14 +206,15 @@ instance Eval Mul where
   evalAlgebra :: Mul Int -> Int
   evalAlgebra (Mul x y) = x * y
 
--- | Original ⊗ (\otimes)
 infixl 7 |*|
 
+-- | Original \(\otimes\)
 (|*|) :: (Mul :<: f) => Expr f -> Expr f -> Expr f
 x |*| y = inject (Mul x y)
 
-infixr 6 :+:
+infixr 6 :+: -- ch 4
 
+-- |
 -- >>> eval ex51
 -- 404
 ex51 :: Expr (Val :+: Add :+: Mul)
@@ -185,10 +224,11 @@ ex51 = val 80 |*| val 5 |+| val 4
 -- >>> eval ex51'
 -- 404
 --
--- If "infixr 6 :+:" is not specified, parentheses are required for the expression type.
+-- If @infixr 6 :+:@ is not specified, parentheses are required for the expression type.
 ex51' :: Expr (Val :+: (Add :+: Mul))
 ex51' = val 80 |*| val 5 |+| val 4
 
+-- |
 -- >>> eval ex52
 -- 42
 ex52 :: Expr (Val :+: Mul)
@@ -231,38 +271,58 @@ ex53 = val 80 |*| val 5 |+| val 4
 match :: (g :<: f) => Expr f -> Maybe (g (Expr f))
 match (In t) = prj t
 
--- | Origina name `distr`
-distrR :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
-distrR t = do
+-- | Original name @distr@
+distrL :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
+distrL t = do
   Mul a b <- match t
   Add c d <- match b
   return (a |*| c |+| a |*| d)
 
-distrL :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
-distrL t = do
+distrR :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
+distrR t = do
   Mul a b <- match t
   Add c d <- match a
   return (c |*| b |+| d |*| b)
 
 distr :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
-distr t = distrR t <|> distrL t
+distr t = distrL t <|> distrR t
 
-prettyDistr :: (Add :<: f, Mul :<: f, Render f) => Expr f -> String
-prettyDistr expr = maybe "error" pretty $ distr expr
+-- | ref. <https://www.extrema.is/blog/2022/04/04/data-types-a-la-carte>
+rewriteExpr :: forall f. (Functor f) => (Expr f -> Maybe (Expr f)) -> Expr f -> Expr f
+rewriteExpr f (In t) = f' $ In (fmap (rewriteExpr f) t)
+  where
+    f' :: Expr f -> Expr f
+    f' e = maybe e (rewriteExpr f) (f e)
 
+-- |
 -- >>> pretty ex54
 -- "(10 * (20 + 30))"
--- >>> prettyDistr ex54
+--
+-- >>> pretty $ rewriteExpr distr ex54
 -- "((10 * 20) + (10 * 30))"
 ex54 :: Expr (Val :+: Mul :+: Add)
 ex54 = val 10 |*| (val 20 |+| val 30)
 
+-- |
 -- >>> pretty ex55
 -- "((20 + 30) * 10)"
--- >>> prettyDistr ex55
+-- >>> pretty $ rewriteExpr distr ex55
 -- "((20 * 10) + (30 * 10))"
 ex55 :: Expr (Val :+: Mul :+: Add)
 ex55 = (val 20 |+| val 30) |*| val 10
 
+-- |
+-- >>> pretty ex56
+-- "((10 + 20) * (30 + 40))"
+-- >>> pretty $ rewriteExpr distr ex56
+-- "(((10 * 30) + (20 * 30)) + ((10 * 40) + (20 * 40)))"
 ex56 :: Expr (Val :+: Mul :+: Add)
 ex56 = (val 10 |+| val 20) |*| (val 30 |+| val 40)
+
+-- |
+-- >>> pretty ex57
+-- "((10 * (20 + 30)) + 10)"
+-- >>> pretty $ rewriteExpr distr ex57
+-- "(((10 * 20) + (10 * 30)) + 10)"
+ex57 :: Expr (Val :+: Mul :+: Add)
+ex57 = (val 10 |*| (val 20 |+| val 30)) |+| val 10
