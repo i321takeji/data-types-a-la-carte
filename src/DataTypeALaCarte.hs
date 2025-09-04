@@ -72,7 +72,8 @@ foldExpr f (In t) = f (fmap (foldExpr f) t)
 
 -- $foldExpr_expand
 -- @
---  foldExpr f (In (Inr (Add (In (Inl (Val 118))) (In (Inl (Val 1219))))))
+--    foldExpr f addExample
+-- => foldExpr f (In (Inr (Add (In (Inl (Val 118))) (In (Inl (Val 1219))))))
 -- => f (fmap (foldExpr f) (Inr (Add (In (Inl (Val 118))) (In (Inl (Val 1219))))))
 -- => f (Inr (fmap (foldExpr f) (Add (In (Inl (Val 118))) (In (Inl (Val 1219))))))
 -- => f (Inr (Add (foldExpr f (In (Inl (Val 118))))
@@ -293,6 +294,31 @@ rewriteExpr f (In t) = f' $ In (fmap (rewriteExpr f) t)
   where
     f' :: Expr f -> Expr f
     f' e = maybe e (rewriteExpr f) (f e)
+
+-- $rewriteExpr_expand
+-- @
+--    rewriteExpr f addExample
+-- => rewriteExpr f (In (Inr (Add (In (Inl (Val 118)))
+--                                (In (Inl (Val 1219))))))
+-- => f' $ In (fmap (rewriteExpr f) (Inr (Add (In (Inl (Val 118)))
+--                                            (In (Inl (Val 1219))))))
+-- => f' $ In (Inr (fmap (rewriteExpr f) (Add (In (Inl (Val 118)))
+--                                            (In (Inl (Val 1219))))))
+-- => f' $ In (Inr (Add (rewriteExpr f (In (Inl (Val 118))))
+--                      (rewriteExpr f (In (Inl (Val 1219))))))
+-- => f' $ In (Inr (Add (f' $ In (fmap (rewriteExpr f) ((Inl (Val 118)))))
+--                      (rewriteExpr f (In (Inl (Val 1219))))))
+-- => f' $ In (Inr (Add (f' $ In (Inl (fmap (rewriteExpr f) (Val 118))))
+--                      (rewriteExpr f (In (Inl (Val 1219))))))
+-- => f' $ In (Inr (Add (f' $ In (Inl (Val 118)))
+--                      (rewriteExpr f (In (Inl (Val 1219))))))
+-- => f' $ In (Inr (Add (f' $ In (Inl (Val 118)))
+--                      (f' $ In (fmap (rewriteExpr f) (Inl (Val 1219))))))
+-- => f' $ In (Inr (Add (f' $ In (Inl (Val 118)))
+--                      (f' $ In (Inl (fmap (rewriteExpr f) (Val 1219))))))
+-- => f' $ In (Inr (Add (f' $ In (Inl (Val 118)))
+--                      (f' $ In (Inl (Val 1219)))))
+-- @
 
 -- |
 -- >>> pretty ex54
