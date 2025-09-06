@@ -49,6 +49,8 @@ exVal = In (Val 10)
 exAdd :: AddExpr -- Expr Add
 exAdd = In (Add undefined undefined)
 
+-- |
+-- This example is @118 + 1219@.
 addExample :: Expr (Val :+: Add)
 addExample = In (Inr (Add (In (Inl (Val 118))) (In (Inl (Val 1219)))))
 
@@ -168,6 +170,9 @@ val x = inject (Val x)
 (|+|) :: (Add :<: f) => Expr f -> Expr f -> Expr f
 x |+| y = inject (Add x y)
 
+-- |
+-- This example is @30000 + 1330 + 7@.
+--
 -- >>> eval ex41
 -- 31337
 ex41 :: Expr (Add :+: Val)
@@ -216,20 +221,28 @@ x |*| y = inject (Mul x y)
 infixr 6 :+: -- ch 4
 
 -- |
+-- This example is @80 * 5 + 4@.
+--
 -- >>> eval ex51
 -- 404
 ex51 :: Expr (Val :+: Add :+: Mul)
 ex51 = val 80 |*| val 5 |+| val 4
 
 -- |
--- >>> eval ex51'
--- 404
+-- This example is @80 * 5 + 4@.
 --
 -- If @infixr 6 :+:@ is not specified, parentheses are required for the expression type.
+--
+-- >>> eval ex51'
+-- 404
 ex51' :: Expr (Val :+: (Add :+: Mul))
 ex51' = val 80 |*| val 5 |+| val 4
 
 -- |
+-- This example is @6 * 7@.
+--
+-- @ex52 :: Expr (Val :+: Mul :+: Add)@ is also acceptable.
+--
 -- >>> eval ex52
 -- 42
 ex52 :: Expr (Val :+: Mul)
@@ -260,6 +273,9 @@ instance (Render f, Render g) => Render (f :+: g) where
   render (Inl x) = render x
   render (Inr y) = render y
 
+-- |
+-- This example is @80 * 5 + 4@.
+--
 -- >>> pretty ex53
 -- "((80 * 5) + 4)"
 ex53 :: Expr (Val :+: Add :+: Mul)
@@ -272,19 +288,23 @@ ex53 = val 80 |*| val 5 |+| val 4
 match :: (g :<: f) => Expr f -> Maybe (g (Expr f))
 match (In t) = prj t
 
--- | Original name @distr@
+-- | Original name @distr@.
+--
+-- The left distributivity for multiplication and addition.
 distrL :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
 distrL t = do
   Mul a b <- match t
   Add c d <- match b
   return (a |*| c |+| a |*| d)
 
+-- | The right distributivity for multiplication and addition.
 distrR :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
 distrR t = do
   Mul a b <- match t
   Add c d <- match a
   return (c |*| b |+| d |*| b)
 
+-- | The distributivity for multiplication and addition.
 distr :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
 distr t = distrL t <|> distrR t
 
@@ -321,6 +341,8 @@ rewriteExpr f (In t) = f' $ In (fmap (rewriteExpr f) t)
 -- @
 
 -- |
+-- This example is @(10 * (20 + 30))@.
+--
 -- >>> pretty ex54
 -- "(10 * (20 + 30))"
 --
@@ -330,6 +352,8 @@ ex54 :: Expr (Val :+: Mul :+: Add)
 ex54 = val 10 |*| (val 20 |+| val 30)
 
 -- |
+-- This example is @(20 + 30) * 10@.
+--
 -- >>> pretty ex55
 -- "((20 + 30) * 10)"
 -- >>> pretty $ rewriteExpr distr ex55
@@ -338,6 +362,8 @@ ex55 :: Expr (Val :+: Mul :+: Add)
 ex55 = (val 20 |+| val 30) |*| val 10
 
 -- |
+-- This example is @((10 + 20) * (30 + 40))@.
+--
 -- >>> pretty ex56
 -- "((10 + 20) * (30 + 40))"
 -- >>> pretty $ rewriteExpr distr ex56
@@ -346,9 +372,13 @@ ex56 :: Expr (Val :+: Mul :+: Add)
 ex56 = (val 10 |+| val 20) |*| (val 30 |+| val 40)
 
 -- |
+-- This example is @((10 * (20 + 30)) + 10)@.
+--
 -- >>> pretty ex57
 -- "((10 * (20 + 30)) + 10)"
 -- >>> pretty $ rewriteExpr distr ex57
 -- "(((10 * 20) + (10 * 30)) + 10)"
 ex57 :: Expr (Val :+: Mul :+: Add)
 ex57 = (val 10 |*| (val 20 |+| val 30)) |+| val 10
+
+-- * 6 Monads for free
