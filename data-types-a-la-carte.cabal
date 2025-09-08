@@ -26,4 +26,6 @@ library
   default-language: Haskell2010
 
   -- cabal-fmt: expand src
-  exposed-modules:  DataTypeALaCarte
+  exposed-modules:
+    DataTypeALaCarte
+    Free
