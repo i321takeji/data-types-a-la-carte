@@ -51,3 +51,12 @@
       ghci> run tick (Mem 4) -- ex: calculator (Ch 6)
       (4,Mem 5)
       ```
+
+  - Ch 7
+
+      ```sh
+      $ stack repl
+      ghci> exec $ cat "./src/test.txt" -- ex: teletype and filesystem (Ch 7)
+      foo bar baz
+      foobar
+      ```

@@ -5,6 +5,8 @@
 module Free where
 
 import DataTypeALaCarte ((:+:) (..), (:<:) (..))
+import Prelude hiding (getChra, putChar, readFile, writeFile)
+import qualified Prelude
 
 -- * 6 Monads for free
 
@@ -128,3 +130,62 @@ instance (Run f, Run g) => Run (f :+: g) where
 
 run :: (Run f) => Term f a -> Mem -> (a, Mem)
 run = foldTerm (,) runAlgebra
+
+-- * 7 Applications
+
+data Teletype a
+  = GetChar (Char -> a)
+  | PutChar Char a
+
+data FileSystem a
+  = ReadFile FilePath (String -> a)
+  | WriteFile FilePath String a
+
+instance Functor Teletype where
+  fmap :: (a -> b) -> Teletype a -> Teletype b
+  fmap f (GetChar g) = GetChar $ f . g
+  fmap f (PutChar c x) = PutChar c (f x)
+
+instance Functor FileSystem where
+  fmap :: (a -> b) -> FileSystem a -> FileSystem b
+  fmap f (ReadFile fp g) = ReadFile fp (f . g)
+  fmap f (WriteFile fp str x) = WriteFile fp str (f x)
+
+getChar :: (Teletype :<: f) => Term f Char
+getChar = inject $ GetChar Pure
+
+putChar :: (Teletype :<: f) => Char -> Term f ()
+putChar c = inject $ PutChar c (Pure ())
+
+readFile :: (FileSystem :<: f) => FilePath -> Term f String
+readFile fp = inject $ ReadFile fp Pure
+
+writeFile :: (FileSystem :<: f) => FilePath -> String -> Term f ()
+writeFile fp str = inject $ WriteFile fp str (Pure ())
+
+exec :: (Exec f) => Term f a -> IO a
+exec = foldTerm return execAlgebra
+
+class (Functor f) => Exec f where
+  execAlgebra :: f (IO a) -> IO a
+
+instance Exec Teletype where
+  execAlgebra :: Teletype (IO a) -> IO a
+  execAlgebra (GetChar f) = Prelude.getChar >>= f
+  execAlgebra (PutChar c io) = Prelude.putChar c >> io
+
+instance Exec FileSystem where
+  execAlgebra :: FileSystem (IO a) -> IO a
+  execAlgebra (ReadFile fp f) = Prelude.readFile fp >>= f
+  execAlgebra (WriteFile fp str io) = Prelude.writeFile fp str >> io
+
+instance (Exec f, Exec g) => Exec (f :+: g) where
+  execAlgebra :: (f :+: g) (IO a) -> IO a
+  execAlgebra (Inl io) = execAlgebra io
+  execAlgebra (Inr io) = execAlgebra io
+
+cat :: FilePath -> Term (Teletype :+: FileSystem) ()
+cat fp = do
+  contents <- readFile fp
+  mapM putChar contents
+  return ()
