@@ -5,7 +5,7 @@
 module Free where
 
 import DataTypeALaCarte ((:+:) (..), (:<:) (..))
-import Prelude hiding (getChra, putChar, readFile, writeFile)
+import Prelude hiding (getChaar, putChar, readFile, writeFile)
 import qualified Prelude
 
 -- * 6 Monads for free
