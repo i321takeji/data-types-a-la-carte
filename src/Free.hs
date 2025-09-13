@@ -65,6 +65,10 @@ data Incr t = Incr Int t
 -- | functional argument that expects to receive the contents of the memory cell
 data Recall t = Recall (Int -> t)
 
+-- data Incr' t = Incr' Int (() -> t)
+-- data Recall' t = Recall () (Int -> t)
+-- data Clear' t = Clear' () (() -> t)
+
 data Clear t = Clear t
 
 instance Functor Incr where
@@ -116,7 +120,7 @@ instance Run Incr where
   runAlgebra (Incr k r) (Mem i) = r (Mem (i + k))
 
 instance Run Recall where
-  runAlgebra :: Recall (Mem -> (a, Mem)) -> Mem -> (a, Mem)
+  runAlgebra :: Recall (Mem -> (a, Mem)) -> (Mem -> (a, Mem))
   runAlgebra (Recall r) (Mem i) = r i (Mem i)
 
 instance Run Clear where
