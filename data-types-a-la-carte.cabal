@@ -20,12 +20,24 @@ source-repository head
   type:     git
   location: https://github.com/githubuser/data-types-a-la-carte
 
-library
-  hs-source-dirs:   src
+common deps
   build-depends:    base >=4.7 && <5
   default-language: Haskell2010
+
+library
+  import: deps
+  hs-source-dirs:   src
 
   -- cabal-fmt: expand src
   exposed-modules:
     DataTypeALaCarte
     Free
+
+test-suite doctest
+  import:             deps
+  type:               exitcode-stdio-1.0
+  main-is:            Doctest.hs
+  hs-source-dirs:     test
+  build-depends:
+    , data-types-a-la-carte
+    , doctest ^>= 0.24

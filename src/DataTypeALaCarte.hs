@@ -10,7 +10,7 @@
 --
 --     - Swierstra W, "Data types à la carte", Journal of Functional Programming, Vol 18, No 4, pp423--436 (2008)
 --     - URL: <https://www.cambridge.org/core/journals/journal-of-functional-programming/article/data-types-a-la-carte/14416CB20C4637164EA9F77097909409>
-module DataTypeALaCarte ((:<:) (..), (:+:) (..)) where
+module DataTypeALaCarte where
 
 import Control.Applicative (Alternative ((<|>)))
 
@@ -113,6 +113,7 @@ instance (Eval f, Eval g) => Eval (f :+: g) where
 eval :: (Eval f) => Expr f -> Int
 eval expr = foldExpr evalAlgebra expr
 
+-- $eval_addExample
 -- >>> eval addExample
 -- 1337
 

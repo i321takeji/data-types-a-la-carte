@@ -65,11 +65,13 @@ data Incr t = Incr Int t
 -- | functional argument that expects to receive the contents of the memory cell
 data Recall t = Recall (Int -> t)
 
--- data Incr' t = Incr' Int (() -> t)
--- data Recall' t = Recall () (Int -> t)
--- data Clear' t = Clear' () (() -> t)
-
 data Clear t = Clear t
+
+{-
+data Incr' t = Incr' Int (() -> t)
+data Recall' t = Recall () (Int -> t)
+data Clear' t = Clear' () (() -> t)
+-}
 
 instance Functor Incr where
   fmap :: (a -> b) -> Incr a -> Incr b
@@ -132,7 +134,7 @@ instance (Run f, Run g) => Run (f :+: g) where
   runAlgebra (Inl r) = runAlgebra r
   runAlgebra (Inr r) = runAlgebra r
 
-run :: (Run f) => Term f a -> Mem -> (a, Mem)
+run :: (Run f) => Term f a -> (Mem -> (a, Mem))
 run = foldTerm (,) runAlgebra
 
 -- * 7 Applications
@@ -144,6 +146,16 @@ data Teletype a
 data FileSystem a
   = ReadFile FilePath (String -> a)
   | WriteFile FilePath String a
+
+{-
+data Teletype' a
+  = GetChar' () (Char -> a)
+  | PutChar' Char (() -> a)
+
+data FileSystem' a
+  = ReadFile' FilePath () (String -> a)
+  | WriteFile' FilePath String (() -> a)
+-}
 
 instance Functor Teletype where
   fmap :: (a -> b) -> Teletype a -> Teletype b
@@ -188,6 +200,10 @@ instance (Exec f, Exec g) => Exec (f :+: g) where
   execAlgebra (Inl io) = execAlgebra io
   execAlgebra (Inr io) = execAlgebra io
 
+-- |
+-- >>> exec $ cat "./src/test.txt"
+-- foo bar baz
+-- foobar
 cat :: FilePath -> Term (Teletype :+: FileSystem) ()
 cat fp = do
   contents <- readFile fp
